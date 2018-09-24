@@ -56,24 +56,93 @@ training_images = np.vstack((training_images_1, training_images_2, training_imag
 test_images = np.vstack((test_images_1, test_images_2, test_images_7))
 
 def NNClassify(x, k):
-    # result = np.array((0,0), dtype = 'int32')
-    result = []
-    for image in range(training_images.shape[0]):
-        sum = 0
-        for pixel in range(28*28):
-            sum += math.pow((x[pixel] - training_images[image][pixel]),2)
-        distance = math.sqrt(sum)
-        # result = np.vstack((result, np.array((image, distance))))
-        result.append((image, distance))
-    n = np.array(result, dtype=[('x', int), ('y', float)])
-    # n = np.array(result)
-    n.sort(order='y')
+    result = np.array([], dtype = 'int8')
+    for test_image in x:
+        temp_result = []
+        for image in range(training_images.shape[0]):
+            distance = np.sqrt(np.sum((test_image - training_images[image]**2)))
+            temp_result.append((image, distance))
+        n = np.array(temp_result, dtype=[('x', int), ('y', float)])
+        n.sort(order='y')
 
-    nearest = []
+        nearest = []
+        for i in range(k):
+            nearest.append(training_images[n[i][0], 784])
+        nearest = np.array(nearest)
+        counts = np.bincount(nearest)
+        result = np.append(result, np.argmax(counts))
+    return result
 
+def get_accuracy(predictions, labels):
+    acc = 0
+    for i in range(predictions.shape[0]):
+        if predictions[i] == labels[i]:
+            acc += 1
+    return acc/predictions.shape[0]
+
+def get_accuracy2(predictions, labels):
+    acc = 0
+    for i in range(predictions.shape[0]):
+        if predictions[i] == labels[i]:
+            acc += 1
+        else:
+            img = Image.fromarray(test_images[i,:784].reshape((28,28)))
+            img.show()
+            print("Prediction: {} | Label: {}".format(predictions[i], labels[i]))
+    return acc/predictions.shape[0]    
+
+def NN_cross_validate(n, k):
+    folds = np.split(training_images, k)
+    total_acc = 0
     for i in range(k):
-        nearest.append(training_images[n[i][0], 784])
+        test_set = np.array(folds[i])
+        training_set = None
+        for j in range(5):
+            if i == j:
+                continue
+            if training_set is None:
+                training_set = np.vstack((folds[j]))
+            else:
+                training_set = np.vstack((training_set, folds[j]))
+        result = NNClassify(test_set, n)
+        total_acc += get_accuracy(result, test_set[:,784])
+    avg_accuracy = float(total_acc / k)
+    return avg_accuracy
 
-    return n, nearest
+def determine_model(nn, k):
+    best_n = -1
+    best_avg = -1
+    for n in nn:
+        avg = NN_cross_validate(n, k)
+        if avg > best_avg:
+            best_avg = avg
+            best_n = n
+    return best_n, best_avg
 
-r, p = NNClassify(test_images[89], 50)
+nearest_neighors = np.array([1,3,5,7,9])
+best_n, best_avg = determine_model(nearest_neighors, 5)
+
+r = NNClassify(test_images, best_n)
+a = get_accuracy(r, test_images[:, 784])
+
+t = test_images[:, 784]
+print(r)
+print(test_images[:, 784])
+print(best_avg)
+print(a)
+
+# a2 = get_accuracy2(r, test_images[:,784])
+equal = np.where(np.equal(r,test_images[:,784]))
+not_equal = np.where(np.not_equal(r,test_images[:,784]))
+
+# for i in range(5):
+#     print(i)
+#     img = Image.fromarray(test_images[equal[0][i],:784].reshape((28,28)))
+#     img.show()
+#     # print("Prediction: {} | Label: {}".format(r[i], t[i]))
+
+for i in range(5):
+    print(i)
+    img = Image.fromarray(test_images[not_equal[0][i],:784].reshape((28,28)))
+    img.show()
+    print("Prediction: {} | Label: {}".format(r[not_equal[0][i]], test_images[not_equal[0][i], 784]))
