@@ -66,7 +66,14 @@ def NNClassify(x, k):
         # result = np.vstack((result, np.array((image, distance))))
         result.append((image, distance))
     n = np.array(result, dtype=[('x', int), ('y', float)])
+    # n = np.array(result)
     n.sort(order='y')
-    return result
 
-r = NNClassify(test_images[0], 1)
+    nearest = []
+
+    for i in range(k):
+        nearest.append(training_images[n[i][0], 784])
+
+    return n, nearest
+
+r, p = NNClassify(test_images[89], 50)
