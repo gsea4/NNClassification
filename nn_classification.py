@@ -53,7 +53,9 @@ training_images_2 = training_images_2[mask_2]
 training_images_7 = training_images_7[mask_7]
 
 training_images = np.vstack((training_images_1, training_images_2, training_images_7))
+np.random.shuffle(training_images)
 test_images = np.vstack((test_images_1, test_images_2, test_images_7))
+np.random.shuffle(test_images)
 
 def NNClassify(x, k):
     result = np.array([], dtype = 'int8')
@@ -79,17 +81,6 @@ def get_accuracy(predictions, labels):
         if predictions[i] == labels[i]:
             acc += 1
     return acc/predictions.shape[0]
-
-def get_accuracy2(predictions, labels):
-    acc = 0
-    for i in range(predictions.shape[0]):
-        if predictions[i] == labels[i]:
-            acc += 1
-        else:
-            img = Image.fromarray(test_images[i,:784].reshape((28,28)))
-            img.show()
-            print("Prediction: {} | Label: {}".format(predictions[i], labels[i]))
-    return acc/predictions.shape[0]    
 
 def NN_cross_validate(n, k):
     folds = np.split(training_images, k)
@@ -123,26 +114,23 @@ nearest_neighors = np.array([1,3,5,7,9])
 best_n, best_avg = determine_model(nearest_neighors, 5)
 
 r = NNClassify(test_images, best_n)
-a = get_accuracy(r, test_images[:, 784])
+acc = get_accuracy(r, test_images[:, 784])
 
 t = test_images[:, 784]
-print(r)
-print(test_images[:, 784])
-print(best_avg)
-print(a)
+print("Best average {}".format(best_avg))
+print("Accuracy using {}-NN : {}".format(best_n, acc))
 
-# a2 = get_accuracy2(r, test_images[:,784])
 equal = np.where(np.equal(r,test_images[:,784]))
 not_equal = np.where(np.not_equal(r,test_images[:,784]))
 
-# for i in range(5):
-#     print(i)
-#     img = Image.fromarray(test_images[equal[0][i],:784].reshape((28,28)))
-#     img.show()
-#     # print("Prediction: {} | Label: {}".format(r[i], t[i]))
+for i in range(5):
+    img = Image.fromarray(test_images[equal[0][i],:784].reshape((28,28)))
+    img.show()
+    print("Prediction: {} | Label: {}".format(r[equal[0][i]], test_images[equal[0][i], 784]))
+
+x = input()
 
 for i in range(5):
-    print(i)
     img = Image.fromarray(test_images[not_equal[0][i],:784].reshape((28,28)))
     img.show()
     print("Prediction: {} | Label: {}".format(r[not_equal[0][i]], test_images[not_equal[0][i], 784]))
